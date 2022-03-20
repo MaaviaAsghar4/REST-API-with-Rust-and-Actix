@@ -1,6 +1,6 @@
-// use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Response<T> {
     pub results: Vec<T>,
 }

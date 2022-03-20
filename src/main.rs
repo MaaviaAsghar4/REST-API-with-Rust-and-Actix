@@ -1,39 +1,31 @@
 // #[macro_use]
 extern crate actix_web;
 
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware, App, HttpServer};
 
 use std::{env, io};
 
-// mod constants;
-// mod like;
-// mod response;
-// mod tweet;
+mod constants;
+mod like;
+mod response;
+mod tweet;
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("hello world")
-}
-
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there")
-}
-
-#[actix_web::main]
+#[actix_rt::main]
 async fn main() -> io::Result<()> {
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
     HttpServer::new(|| {
         App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+            .wrap(middleware::Logger::default())
+            // register HTTP requests handlers
+            .service(tweet::list)
+            .service(tweet::get)
+            .service(tweet::create)
+            .service(tweet::delete)
+            .service(like::list)
+            .service(like::plus_one)
+            .service(like::minus_one)
     })
     .bind("127.0.0.1:8000")?
     .run()
