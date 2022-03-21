@@ -1,5 +1,8 @@
-// #[macro_use]
+#[macro_use]
 extern crate actix_web;
+
+#[macro_use]
+extern crate diesel;
 
 use actix_web::{middleware, App, HttpServer};
 
@@ -8,6 +11,7 @@ use std::{env, io};
 mod constants;
 mod like;
 mod response;
+mod schema;
 mod tweet;
 
 #[actix_rt::main]
