@@ -1,18 +1,18 @@
-use actix_web::web::{Data,Path};
-use actix_web::{web,HttpResponse};
+use actix_web::web::{Data, Path};
 use actix_web::{delete, get, post};
-use chrono::{DateTime, Utc, NaiveDateTime, TimeZone};
+use actix_web::{web, HttpResponse};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::constants::{APPLICATION_JSON,CONNECTION_POOL_ERROR};
+use crate::constants::{APPLICATION_JSON, CONNECTION_POOL_ERROR};
 use crate::response::Response;
-use crate::{DBPool,DBPooledConnection};
+use crate::{DBPool, DBPooledConnection};
 
 use super::schema::likes;
-use diesel::query_dsl::methods::{FilterDsl,OrderDsl};
+use diesel::query_dsl::methods::{FilterDsl, OrderDsl};
 use diesel::result::Error;
-use diesel::{Insertable, Queryable};
+use diesel::{ExpressionMethods, Insertable, Queryable, RunQueryDsl};
 
 use std::str::FromStr;
 
@@ -32,7 +32,7 @@ impl Like {
         }
     }
 
-    pub fn to_like_db(&self,tweet_id:Uuid) -> LikeDB {
+    pub fn to_like_db(&self, tweet_id: Uuid) -> LikeDB {
         LikeDB {
             id: Uuid::from_str(self.id.as_str()).unwrap(),
             created_at: self.created_at.naive_utc(),
@@ -42,7 +42,7 @@ impl Like {
 }
 
 #[table_name = "likes"]
-#[derive(Queryable,Insertable)]
+#[derive(Queryable, Insertable, Debug, Serialize, Deserialize)]
 pub struct LikeDB {
     pub id: Uuid,
     pub created_at: NaiveDateTime,
@@ -52,16 +52,16 @@ pub struct LikeDB {
 impl LikeDB {
     pub fn to_like(&self) -> Like {
         Like {
-            id: self.id.to_string(,
-            created_at: Utc.from_utc_datetime(&self.created_at),)
+            id: self.id.to_string(),
+            created_at: Utc.from_utc_datetime(&self.created_at),
         }
     }
 }
 
-pub fn list_likes(_tweet_id: Uuid, conn: &DBPooledConnection) -> Result<Likes,Error> {
+pub fn list_likes(_tweet_id: Uuid, conn: &DBPooledConnection) -> Result<Likes, Error> {
     use crate::schema::likes::dsl::*;
 
-    let _likes:Vec<LikeDB> = match likes
+    let _likes: Vec<LikeDB> = match likes
         .filter(tweet_id.eq(_tweet_id))
         .order(created_at.desc())
         .load::<LikeDB>(conn)
@@ -89,7 +89,7 @@ pub fn create_like(_tweet_id: Uuid, conn: &DBPooledConnection) -> Result<Like, E
     Ok(like)
 }
 
-pub fn delete_like(_tweet_id: Uuid, conn: &DBPooledConnection) -> Result<Like, Error> {
+pub fn delete_like(_tweet_id: Uuid, conn: &DBPooledConnection) -> Result<(), Error> {
     use crate::schema::likes::dsl::*;
 
     let _likes = list_likes(_tweet_id, conn);
@@ -113,10 +113,10 @@ pub fn delete_like(_tweet_id: Uuid, conn: &DBPooledConnection) -> Result<Like, E
 }
 
 #[get("/tweets/{id}/likes")]
-pub async fn list(path: Path<(String,)>,pool:Data<DBPool>) -> HttpResponse {
-
+pub async fn list(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
     let conn = pool.get().expect(CONNECTION_POOL_ERROR);
-    let likes = web::block(move || list_likes(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
+    let likes =
+        web::block(move || list_likes(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
 
     match likes {
         Ok(likes) => HttpResponse::Ok()
@@ -131,11 +131,11 @@ pub async fn list(path: Path<(String,)>,pool:Data<DBPool>) -> HttpResponse {
 #[post("/tweets/{id}/likes")]
 pub async fn plus_one(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
     let conn = pool.get().expect(CONNECTION_POOL_ERROR);
-    
-    let like = web::block(move || create_like(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
 
+    let like =
+        web::block(move || create_like(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
     match like {
-        Ok(like) => HttpResponse:Ok().content_type(APPLICATION_JSON).json(like),
+        Ok(like) => HttpResponse::Ok().content_type(APPLICATION_JSON).json(like),
         _ => HttpResponse::NoContent().await.unwrap(),
     }
 }
@@ -145,7 +145,6 @@ pub async fn minus_one(path: Path<(String,)>, pool: Data<DBPool>) -> HttpRespons
     let conn = pool.get().expect(CONNECTION_POOL_ERROR);
 
     let _ = web::block(move || delete_like(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
-    
     HttpResponse::NoContent()
         .content_type(APPLICATION_JSON)
         .await

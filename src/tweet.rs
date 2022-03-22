@@ -56,8 +56,8 @@ impl Tweet {
     }
 }
 
+#[derive(Queryable, Insertable, Debug, Deserialize, Serialize)]
 #[table_name = "tweets"]
-#[derive(Queryable, Insertable)]
 pub struct TweetDB {
     pub id: Uuid,
     pub created_at: NaiveDateTime,
@@ -89,7 +89,7 @@ impl TweetRequest {
     }
 }
 
-fn like_tweets(total_tweets: f64, conn: &DBPooledConnection) -> Result<Tweet, Error> {
+fn list_tweets(total_tweets: i64, conn: &DBPooledConnection) -> Result<Tweets, Error> {
     use crate::schema::tweets::dsl::*;
 
     let _tweets = match tweets
@@ -106,7 +106,7 @@ fn like_tweets(total_tweets: f64, conn: &DBPooledConnection) -> Result<Tweet, Er
             .into_iter()
             .map(|t| t.to_tweet())
             .collect::<Vec<Tweet>>(),
-    });
+    })
 }
 
 fn find_tweet(_id: Uuid, conn: &DBPooledConnection) -> Result<Tweet, Error> {
@@ -200,7 +200,6 @@ pub async fn get(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
 
 #[delete("/tweets/{id}")]
 pub async fn delete(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
-    // in any case return status 204
     let conn = pool.get().expect(CONNECTION_POOL_ERROR);
 
     let _ = web::block(move || delete_tweet(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
