@@ -20,7 +20,7 @@ use super::schema::tweets;
 
 pub type Tweets = Response<Tweet>;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Tweet {
     pub id: String,
     pub created_at: DateTime<Utc>,
