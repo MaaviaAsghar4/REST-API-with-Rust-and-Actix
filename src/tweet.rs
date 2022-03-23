@@ -20,7 +20,7 @@ use super::schema::tweets;
 
 pub type Tweets = Response<Tweet>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Tweet {
     pub id: String,
     pub created_at: DateTime<Utc>,
@@ -185,12 +185,12 @@ pub async fn get(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
     match tweet {
         Ok(tweet) => {
             let conn = pool.get().expect(CONNECTION_POOL_ERROR);
-            let _likes =
-                list_likes(Uuid::from_str(tweet.unwrap().id.as_str()).unwrap(), &conn).unwrap();
+            let tweetBody = tweet.unwrap();
+            let _likes = list_likes(Uuid::from_str(tweetBody.id.as_str()).unwrap(), &conn).unwrap();
 
             HttpResponse::Ok()
                 .content_type(APPLICATION_JSON)
-                .json(tweet.unwrap().add_likes(_likes.results))
+                .json(tweetBody.add_likes(_likes.results))
         }
         _ => HttpResponse::NoContent()
             .content_type(APPLICATION_JSON)
