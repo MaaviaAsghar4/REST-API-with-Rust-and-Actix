@@ -144,11 +144,11 @@ fn delete_tweet(_id: Uuid, conn: &DBPooledConnection) -> Result<(), Error> {
 #[get("/tweets")]
 pub async fn list(pool: Data<DBPool>) -> HttpResponse {
     let conn = pool.get().expect(CONNECTION_POOL_ERROR);
-    let mut tweets = web::block(move || list_tweets(50, &conn)).await.unwrap();
-
+    let tweets = web::block(move || list_tweets(50, &conn)).await.unwrap();
     let conn = pool.get().expect(CONNECTION_POOL_ERROR);
     let tweets_with_likes = Tweets {
         results: tweets
+            .unwrap()
             .results
             .iter_mut()
             .map(|t| {
@@ -185,11 +185,12 @@ pub async fn get(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
     match tweet {
         Ok(tweet) => {
             let conn = pool.get().expect(CONNECTION_POOL_ERROR);
-            let _likes = list_likes(Uuid::from_str(tweet.id.as_str()).unwrap(), &conn).unwrap();
+            let _likes =
+                list_likes(Uuid::from_str(tweet.unwrap().id.as_str()).unwrap(), &conn).unwrap();
 
             HttpResponse::Ok()
                 .content_type(APPLICATION_JSON)
-                .json(tweet.add_likes(_likes.results))
+                .json(tweet.unwrap().add_likes(_likes.results))
         }
         _ => HttpResponse::NoContent()
             .content_type(APPLICATION_JSON)
