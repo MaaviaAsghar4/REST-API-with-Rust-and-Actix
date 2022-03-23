@@ -121,7 +121,7 @@ pub async fn list(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
     match likes {
         Ok(likes) => HttpResponse::Ok()
             .content_type(APPLICATION_JSON)
-            .json(likes),
+            .json(likes.unwrap()),
         _ => HttpResponse::Ok()
             .content_type(APPLICATION_JSON)
             .json(Likes::new()),
@@ -135,7 +135,9 @@ pub async fn plus_one(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse
     let like =
         web::block(move || create_like(Uuid::from_str(path.0.as_str()).unwrap(), &conn)).await;
     match like {
-        Ok(like) => HttpResponse::Ok().content_type(APPLICATION_JSON).json(like),
+        Ok(like) => HttpResponse::Ok()
+            .content_type(APPLICATION_JSON)
+            .json(like.unwrap()),
         _ => HttpResponse::NoContent().await.unwrap(),
     }
 }

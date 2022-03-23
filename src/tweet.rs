@@ -172,7 +172,7 @@ pub async fn create(tweet_req: Json<TweetRequest>, pool: Data<DBPool>) -> HttpRe
     match tweet {
         Ok(tweet) => HttpResponse::Created()
             .content_type(APPLICATION_JSON)
-            .json(tweet),
+            .json(tweet.unwrap()),
         _ => HttpResponse::NoContent().await.unwrap(),
     }
 }
@@ -185,12 +185,13 @@ pub async fn get(path: Path<(String,)>, pool: Data<DBPool>) -> HttpResponse {
     match tweet {
         Ok(tweet) => {
             let conn = pool.get().expect(CONNECTION_POOL_ERROR);
-            let tweetBody = tweet.unwrap();
-            let _likes = list_likes(Uuid::from_str(tweetBody.id.as_str()).unwrap(), &conn).unwrap();
+            let tweet_body = tweet.unwrap();
+            let _likes =
+                list_likes(Uuid::from_str(tweet_body.id.as_str()).unwrap(), &conn).unwrap();
 
             HttpResponse::Ok()
                 .content_type(APPLICATION_JSON)
-                .json(tweetBody.add_likes(_likes.results))
+                .json(tweet_body.add_likes(_likes.results))
         }
         _ => HttpResponse::NoContent()
             .content_type(APPLICATION_JSON)
