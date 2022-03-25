@@ -4,6 +4,11 @@ This is a simple REST API developed using RUST Actix.
 
 [Here is the link to the tutorial](https://hub.qovery.com/guides/tutorial/create-a-blazingly-fast-api-in-rust-part-1/)
 
+[Setup diesel](https://diesel.rs/guides/getting-started)
+
+[Setup postgres](https://www.postgresql.org/download/)
+
+
 ### API design
 Our REST API needs to have three endpoints :
 
